@@ -10,15 +10,17 @@
     <p class="result-line">You guessed: <strong>{{ guess }} mph</strong></p>
     <p class="result-line">Actual recorded: <strong>{{ actual | round(1) }} mph</strong></p>
     <p class="result-line">Difference: {{ diff | round(1) }} mph</p>
-    {% if point %}
-      <p class="result-line point-yes">+1 point!</p>
+    {% if points_earned == 3 %}
+    <p class="result-line point-yes">Excellent — within 1 mph! (+3 points)</p>
+    {% elif points_earned == 1 %}
+    <p class="result-line point-yes">Close — within 3 mph! (+1 point)</p>
     {% else %}
-      <p class="result-line point-no">No point this round.</p>
+    <p class="result-line point-no">Not quite (no points)</p>
     {% endif %}
-    <p class="subhead">Score: {{ score }} / {{ num_rounds }}</p>
+    <p class="subhead">Score: {{ score }} / {{ num_rounds * 3 }}</p>
 
     {% if is_last_round %}
-      <p><strong>Game over!</strong> Final score: {{ score }} / {{ num_rounds }}</p>
+      <p><strong>Game over!</strong> Final score: {{ score }} / {{ num_rounds * 3 }}</p>
       <a class="next-link" href="/">Play again</a>
     {% else %}
       <a class="next-link" href="/next">Next round</a>

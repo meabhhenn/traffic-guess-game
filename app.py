@@ -12,7 +12,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key-not-for-production")
 
 NUM_ROUNDS = 5
-CLOSE_ENOUGH_MPH = 3.0
+TIGHT_MPH = 1.0
+LOOSE_MPH = 3.0
 DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 MAPBOX_TOKEN = os.environ["MAPBOX_TOKEN"]
@@ -23,6 +24,10 @@ MAP_IMAGE_PATH = "static/region_map.png"
 
 df = pd.read_csv("data/joined.csv", parse_dates=["hour_ts"])
 
+def is_interesting(row):
+    return (row["precip_mm"] > 0) or (row["wind_mph"] > 20) or (row["temp_f"] < 20) or (row["temp_f"] > 90)
+
+df["weight"] = df.apply(lambda r: 3 if is_interesting(r) else 1, axis=1)
 
 def build_map_if_needed():
     if os.path.exists(MAP_IMAGE_PATH):
@@ -60,7 +65,7 @@ build_map_if_needed()
 
 
 def new_round_row():
-    row = df.sample(n=1).iloc[0]
+    row = df.sample(n=1, weights=df["weight"])
     return {
         "hour_ts": str(row["hour_ts"]),
         "avg_speed_mph": float(row["avg_speed_mph"]),
@@ -112,15 +117,22 @@ def guess():
     current = session["current"]
     actual = current["avg_speed_mph"]
     diff = abs(guess_val - actual)
-    point = 1 if diff <= CLOSE_ENOUGH_MPH else 0
-    session["score"] += point
+
+    if diff <= TIGHT_MPH:
+        points_earned = 3
+    elif diff <= LOOSE_MPH:
+        points_earned = 1
+    else:
+        points_earned = 0
+
+    session["score"] += points_earned
 
     return render_template(
         "reveal.html",
         guess=guess_val,
         actual=actual,
         diff=diff,
-        point=point,
+        points_earned=points_earned,
         round_num=session["round"],
         num_rounds=NUM_ROUNDS,
         score=session["score"],
