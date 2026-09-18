@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Traffic Guess Game — Reveal</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="card">
+    <h1>Round {{ round_num }} of {{ num_rounds }}</h1>
+    <p class="result-line">You guessed: <strong>{{ guess }} mph</strong></p>
+    <p class="result-line">Actual recorded: <strong>{{ actual | round(1) }} mph</strong></p>
+    <p class="result-line">Difference: {{ diff | round(1) }} mph</p>
+    {% if point %}
+      <p class="result-line point-yes">+1 point!</p>
+    {% else %}
+      <p class="result-line point-no">No point this round.</p>
+    {% endif %}
+    <p class="subhead">Score: {{ score }} / {{ num_rounds }}</p>
+
+    {% if is_last_round %}
+      <p><strong>Game over!</strong> Final score: {{ score }} / {{ num_rounds }}</p>
+      <a class="next-link" href="/">Play again</a>
+    {% else %}
+      <a class="next-link" href="/next">Next round</a>
+    {% endif %}
+  </div>
+</body>
+</html>

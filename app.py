@@ -1,0 +1,139 @@
+import os
+import json
+import urllib.parse
+import requests
+import pandas as pd
+from flask import Flask, render_template, request, session
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key-not-for-production")
+
+NUM_ROUNDS = 5
+CLOSE_ENOUGH_MPH = 3.0
+DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+MAPBOX_TOKEN = os.environ["MAPBOX_TOKEN"]
+REGION_BOUNDS = {"west": -87.647208, "east": -87.62308, "south": 41.866129, "north": 41.88886}
+_raw = pd.read_csv("data/traffic_raw.csv")
+REGION_DESCRIPTION = _raw[_raw["region"] == "Chicago Loop"]["description"].iloc[0]
+MAP_IMAGE_PATH = "static/region_map.png"
+
+df = pd.read_csv("data/joined.csv", parse_dates=["hour_ts"])
+
+
+def build_map_if_needed():
+    if os.path.exists(MAP_IMAGE_PATH):
+        return
+    os.makedirs("static", exist_ok=True)
+    geojson = {
+        "type": "Feature",
+        "properties": {"stroke": "#ff3b30", "stroke-width": 3, "fill": "#ff3b30", "fill-opacity": 0.15},
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+                [REGION_BOUNDS["west"], REGION_BOUNDS["south"]],
+                [REGION_BOUNDS["east"], REGION_BOUNDS["south"]],
+                [REGION_BOUNDS["east"], REGION_BOUNDS["north"]],
+                [REGION_BOUNDS["west"], REGION_BOUNDS["north"]],
+                [REGION_BOUNDS["west"], REGION_BOUNDS["south"]],
+            ]],
+        },
+    }
+    encoded = urllib.parse.quote(json.dumps(geojson))
+    url = (
+        f"https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/"
+        f"geojson({encoded})/auto/900x700?access_token={MAPBOX_TOKEN}"
+        )
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        with open(MAP_IMAGE_PATH, "wb") as f:
+            f.write(resp.content)
+    except requests.RequestException as e:
+        print(f"Could not fetch map image, continuing without it: {e}")
+
+
+build_map_if_needed()
+
+
+def new_round_row():
+    row = df.sample(n=1).iloc[0]
+    return {
+        "hour_ts": str(row["hour_ts"]),
+        "avg_speed_mph": float(row["avg_speed_mph"]),
+        "temp_f": float(row["temp_f"]),
+        "precip_mm": float(row["precip_mm"]),
+        "wind_mph": float(row["wind_mph"]),
+        "day_of_week": int(row["day_of_week"]),
+    }
+
+
+def render_round(region_description=REGION_DESCRIPTION, error=None):
+    current = session["current"]
+    ts = pd.Timestamp(current["hour_ts"])
+    return render_template(
+        "round.html",
+        round_num=session["round"],
+        num_rounds=NUM_ROUNDS,
+        score=session["score"],
+        day_name=DAY_NAMES[current["day_of_week"]],
+        day_type="Weekend" if current["day_of_week"] >= 5 else "Weekday",
+        date_str=ts.strftime("%B %d, %Y"),
+        time_str=ts.strftime("%I:%M %p").lstrip("0"),
+        temp_f=current["temp_f"],
+        precip_mm=current["precip_mm"],
+        wind_mph=current["wind_mph"],
+        map_available=os.path.exists(MAP_IMAGE_PATH),
+        error=error,
+    )
+
+
+@app.route("/")
+def start_game():
+    session["round"] = 1
+    session["score"] = 0
+    session["current"] = new_round_row()
+    return render_round()
+
+
+@app.route("/guess", methods=["POST"])
+def guess():
+    raw = request.form.get("guess", "").strip()
+    if not raw:
+        return render_round(error="Please enter a number.")
+    try:
+        guess_val = float(raw)
+    except ValueError:
+        return render_round(error=f"'{raw}' isn't a number — try again.")
+
+    current = session["current"]
+    actual = current["avg_speed_mph"]
+    diff = abs(guess_val - actual)
+    point = 1 if diff <= CLOSE_ENOUGH_MPH else 0
+    session["score"] += point
+
+    return render_template(
+        "reveal.html",
+        guess=guess_val,
+        actual=actual,
+        diff=diff,
+        point=point,
+        round_num=session["round"],
+        num_rounds=NUM_ROUNDS,
+        score=session["score"],
+        is_last_round=session["round"] >= NUM_ROUNDS,
+    )
+
+
+@app.route("/next")
+def next_round():
+    session["round"] += 1
+    session["current"] = new_round_row()
+    return render_round()
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

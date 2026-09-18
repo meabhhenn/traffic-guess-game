@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Traffic Guess Game</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="card">
+    <h1>Traffic Guess Game</h1>
+    <p class="subhead">Round {{ round_num }} of {{ num_rounds }} — Score: {{ score }}</p>
+
+    {% if map_available %}
+      <img class="map-img" src="/static/region_map.png" alt="Region map">
+    {% endif %}
+
+    {% if region_description %}
+      <p class="description">{{ region_description }}</p>
+    {% endif %}
+
+    <dl class="info-grid">
+      <dt>Day</dt><dd>{{ day_name }} ({{ day_type }}), {{ date_str }}</dd>
+      <dt>Time</dt><dd>{{ time_str }}</dd>
+      <dt>Weather</dt><dd>{{ temp_f | round(0) }}°F, {{ precip_mm }}mm precip, wind {{ wind_mph | round(0) }} mph</dd>
+    </dl>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <form class="guess-form" method="POST" action="/guess">
+      <input type="text" name="guess" placeholder="Guess avg speed (mph)">
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+</body>
+</html>
