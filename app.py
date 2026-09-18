@@ -24,6 +24,8 @@ MAP_IMAGE_PATH = "static/region_map.png"
 
 df = pd.read_csv("data/joined.csv", parse_dates=["hour_ts"])
 
+print(df.columns.tolist())
+
 def is_interesting(row):
     return (row["precip_mm"] > 0) or (row["wind_mph"] > 20) or (row["temp_f"] < 20) or (row["temp_f"] > 90)
 
@@ -65,7 +67,7 @@ build_map_if_needed()
 
 
 def new_round_row():
-    row = df.sample(n=1, weights=df["weight"])
+    row = df.sample(n=1).to_dict("records")[0]
     return {
         "hour_ts": str(row["hour_ts"]),
         "avg_speed_mph": float(row["avg_speed_mph"]),
@@ -85,7 +87,6 @@ def render_round(region_description=REGION_DESCRIPTION, error=None):
         num_rounds=NUM_ROUNDS,
         score=session["score"],
         day_name=DAY_NAMES[current["day_of_week"]],
-        day_type="Weekend" if current["day_of_week"] >= 5 else "Weekday",
         date_str=ts.strftime("%B %d, %Y"),
         time_str=ts.strftime("%I:%M %p").lstrip("0"),
         temp_f=current["temp_f"],
@@ -140,8 +141,10 @@ def guess():
     )
 
 
-@app.route("/next")
+@app.route("/next", methods=["POST"])
 def next_round():
+    if session.get("round", 0) >= NUM_ROUNDS:
+        return render_round()  # safety net: don't advance past the last round
     session["round"] += 1
     session["current"] = new_round_row()
     return render_round()

@@ -24,14 +24,12 @@ def get_guess(prompt):
 
 def play_round(row, round_num):
     day_name = DAY_NAMES[row["day_of_week"]]
-    day_type = "Weekend" if row["day_of_week"] >= 5 else "Weekday"
     date_str = row["hour_ts"].strftime("%B %d, %Y")
     time_str = row["hour_ts"].strftime("%I:%M %p").lstrip("0")
 
     print(f"\nRound {round_num} of {NUM_ROUNDS}")
     print(f"  Date:      {day_name}, {date_str}")
     print(f"  Time:      {time_str}")
-    print(f"  Day type:  {day_type}")
     print(f"  Weather:   {row['temp_f']:.0f}°F, {row['precip_mm']:.1f}mm precip, wind {row['wind_mph']:.0f} mph")
 
     guess = get_guess("\nYour guess (avg speed, mph): ")

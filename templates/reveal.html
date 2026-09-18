@@ -23,7 +23,10 @@
       <p><strong>Game over!</strong> Final score: {{ score }} / {{ num_rounds * 3 }}</p>
       <a class="next-link" href="/">Play again</a>
     {% else %}
-      <a class="next-link" href="/next">Next round</a>
+    <form method="POST" action="/next">
+        <button class="next-link" type="submit">Next round</button>
+    </form>
+    {  % endif %}
     {% endif %}
   </div>
 </body>
