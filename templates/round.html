@@ -23,6 +23,8 @@
       <dt>Weather</dt><dd>{{ temp_f | round(0) }}°F, {{ precip_mm }}mm precip, wind {{ wind_mph | round(0) }} mph</dd>
     </dl>
 
+    <p class="hint">For reference: recorded speeds in this area typically range {{ overall_min_speed | round(0) }}–{{ overall_max_speed | round(0) }} mph, averaging {{ overall_mean_speed | round(0) }} mph.</p>
+
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
     <form class="guess-form" method="POST" action="/guess">

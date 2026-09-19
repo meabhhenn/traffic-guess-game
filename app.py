@@ -24,7 +24,10 @@ MAP_IMAGE_PATH = "static/region_map.png"
 
 df = pd.read_csv("data/joined.csv", parse_dates=["hour_ts"])
 
-print(df.columns.tolist())
+OVERALL_MEAN_SPEED = df["avg_speed_mph"].mean()
+OVERALL_MIN_SPEED = df["avg_speed_mph"].min()
+OVERALL_MAX_SPEED = df["avg_speed_mph"].max()
+
 
 def is_interesting(row):
     return (row["precip_mm"] > 0) or (row["wind_mph"] > 20) or (row["temp_f"] < 20) or (row["temp_f"] > 90)
@@ -95,6 +98,9 @@ def render_round(region_description=REGION_DESCRIPTION, error=None):
         wind_mph=current["wind_mph"],
         map_available=os.path.exists(MAP_IMAGE_PATH),
         region_description=region_description,
+        overall_mean_speed=OVERALL_MEAN_SPEED,
+        overall_min_speed=OVERALL_MIN_SPEED,
+        overall_max_speed=OVERALL_MAX_SPEED,
         error=error,
     )
 
