@@ -67,7 +67,7 @@ build_map_if_needed()
 
 
 def new_round_row():
-    row = df.sample(n=1).to_dict("records")[0]
+    row = df.sample(n=1, weights=df["weight"]).to_dict("records")[0]
     return {
         "hour_ts": str(row["hour_ts"]),
         "avg_speed_mph": float(row["avg_speed_mph"]),
@@ -87,12 +87,14 @@ def render_round(region_description=REGION_DESCRIPTION, error=None):
         num_rounds=NUM_ROUNDS,
         score=session["score"],
         day_name=DAY_NAMES[current["day_of_week"]],
+        day_type="Weekend" if current["day_of_week"] >= 5 else "Weekday",
         date_str=ts.strftime("%B %d, %Y"),
         time_str=ts.strftime("%I:%M %p").lstrip("0"),
         temp_f=current["temp_f"],
         precip_mm=current["precip_mm"],
         wind_mph=current["wind_mph"],
         map_available=os.path.exists(MAP_IMAGE_PATH),
+        region_description=region_description,
         error=error,
     )
 
