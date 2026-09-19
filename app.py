@@ -66,6 +66,7 @@ def build_map_if_needed():
         print(f"Could not fetch map image, continuing without it: {e}")
 
 
+
 build_map_if_needed()
 
 
